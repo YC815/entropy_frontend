@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+// import localFont from "next/font/local";
+
+// 引入剛剛建立的 Provider
+import QueryProvider from "@/components/providers/query-provider";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -24,10 +29,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+      <body className="antialiased">
+        {/* 包覆 QueryProvider */}
+        <QueryProvider>{children}</QueryProvider>
       </body>
     </html>
   );
