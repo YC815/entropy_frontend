@@ -1,15 +1,36 @@
 "use client";
 
+import { useMemo } from "react";
+import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import { useDashboard } from "@/hooks/use-dashboard";
 import { useTasks } from "@/hooks/use-tasks";
-import { Shield, Brain, Zap, Activity, AlertCircle } from "lucide-react";
+import { Shield, Brain, Zap, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TaskCard } from "@/components/task-card";
 import { TaskStatus } from "@/types";
+import { getTaskUrgency } from "@/lib/utils";
 
 export function DashboardView() {
   const { data, isLoading, isError, error } = useDashboard();
   const { data: tasks = [] } = useTasks();
+
+  // ============================================================
+  // 計算 Staged Tasks (取代舊的 stress_breakdown)
+  // ============================================================
+  const stagedTasks = useMemo(
+    () => tasks.filter((t) => t.status === TaskStatus.STAGED),
+    [tasks]
+  );
+
+  // Sort by urgency (critical first)
+  const sortedTasks = useMemo(() => {
+    return [...stagedTasks].sort((a, b) => {
+      const urgencyOrder = { critical: 0, warning: 1, normal: 2 };
+      const urgA = getTaskUrgency(a.deadline);
+      const urgB = getTaskUrgency(b.deadline);
+      return urgencyOrder[urgA] - urgencyOrder[urgB];
+    });
+  }, [stagedTasks]);
 
   if (isLoading) {
     return (
@@ -136,54 +157,37 @@ export function DashboardView() {
         </div>
       </section>
 
-      {/* 壓力源 */}
+      {/* ============================================================ */}
+      {/* Strategic Map (取代 Active Stressors) */}
+      {/* ============================================================ */}
       <section className="neo-card p-0 overflow-hidden">
         <div className="p-4 border-b-2 border-neo-black bg-stone-50 flex items-center justify-between">
           <h3 className="font-display text-xl flex items-center gap-2">
-            <Activity className="w-5 h-5" />
-            Active Stressors
+            STRATEGIC MAP
           </h3>
           <span className="font-mono text-xs bg-neo-black text-neo-white px-2 py-1">
-            COUNT: {data.stress_breakdown.length}
+            COUNT: {stagedTasks.length}
           </span>
         </div>
-        <div className="p-0">
-          {/* (這裡省略一點重複代碼，就是你原本的 map 列表) */}
-          {data.stress_breakdown.length === 0 ? (
+
+        <div className="p-4">
+          {sortedTasks.length === 0 ? (
             <div className="p-8 text-center font-mono text-stone-400">
-              NO ACTIVE STRESSORS DETECTED.
+              NO STAGED TASKS. DRAG TASKS FROM LOGISTICS VIEW.
             </div>
           ) : (
-            <div className="divide-y-2 divide-stone-100">
-              {data.stress_breakdown.map((item, index) => (
-                <div
-                  key={index}
-                  className="p-4 flex items-center justify-between hover:bg-stone-50"
-                >
-                  <span className="font-bold">{item.task_title}</span>
-                  <span className="font-mono text-neo-red font-bold">
-                    -{item.stress_impact.toFixed(1)}%
-                  </span>
-                </div>
-              ))}
-            </div>
+            <SortableContext
+              items={sortedTasks.map((t) => t.id)}
+              strategy={rectSortingStrategy}
+            >
+              <div className="grid grid-cols-2 gap-4">
+                {sortedTasks.map((task) => (
+                  <TaskCard key={task.id} task={task} />
+                ))}
+              </div>
+            </SortableContext>
           )}
         </div>
-      </section>
-
-      {/* Strategic Map */}
-      <section className="neo-card p-6">
-        <h2 className="font-display text-2xl mb-4">STRATEGIC MAP</h2>
-        <div className="grid grid-cols-2 gap-4">
-          {tasks
-            .filter((t) => t.status === TaskStatus.STAGED)
-            .map((task) => (
-              <TaskCard key={task.id} task={task} />
-            ))}
-        </div>
-        {tasks.filter((t) => t.status === TaskStatus.STAGED).length === 0 && (
-          <p className="font-mono text-stone-400">No staged tasks</p>
-        )}
       </section>
     </div>
   );

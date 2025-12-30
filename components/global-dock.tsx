@@ -1,14 +1,15 @@
 "use client";
 
 import { useDroppable } from "@dnd-kit/core";
-import { useTasks, useDeleteTask } from "@/hooks/use-tasks";
+import { useTasks, useUpdateTask } from "@/hooks/use-tasks";
 import { TaskStatus } from "@/types";
-import { Flame } from "lucide-react";
+import { X } from "lucide-react";
+import { toast } from "sonner";
 
 export function GlobalDock() {
   const { data: tasks = [] } = useTasks();
   const { setNodeRef, isOver } = useDroppable({ id: "dock" });
-  const deleteMutation = useDeleteTask();
+  const updateMutation = useUpdateTask();
 
   // ============================================================
   // DERIVED STATE: Dock tasks from React Query (SINGLE SOURCE OF TRUTH)
@@ -55,13 +56,19 @@ export function GlobalDock() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (confirm("Remove from Dock?")) {
-                          deleteMutation.mutate(task.id);
-                        }
+                        updateMutation.mutate({
+                          id: task.id,
+                          status: TaskStatus.STAGED,
+                          type: task.type,
+                        });
+                        toast.info("Task Undocked", {
+                          description: "Returned to Strategic Map",
+                        });
                       }}
-                      className="self-end p-1 hover:bg-red-500/20 rounded transition-colors"
+                      className="self-end p-1 hover:bg-stone-500/20 rounded transition-colors"
+                      title="Undock task"
                     >
-                      <Flame className="w-3 h-3 text-red-400" />
+                      <X className="w-3 h-3 text-stone-400 hover:text-stone-600" />
                     </button>
                   </>
                 ) : (

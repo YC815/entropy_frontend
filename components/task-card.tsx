@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { useUpdateTask } from '@/hooks/use-tasks'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, Flame } from 'lucide-react'
+import { getTaskUrgency, getUrgencyShadow } from '@/lib/utils'
 
 interface TaskCardProps {
   task: Task
@@ -83,19 +84,10 @@ export function TaskCard({ task, onDelete }: TaskCardProps) {
   }
 
   // ============================================================
-  // Urgency Styling (改為陰影顏色而非邊框顏色)
+  // Urgency Styling (使用統一工具函式)
   // ============================================================
-  const getUrgencyShadow = () => {
-    if (!task.deadline) return 'shadow-[4px_4px_0px_0px_#000000]'
-
-    const now = new Date()
-    const deadline = new Date(task.deadline)
-    const hoursUntil = (deadline.getTime() - now.getTime()) / (1000 * 60 * 60)
-
-    if (hoursUntil < 24) return 'shadow-[4px_4px_0px_0px_#FF0000]'
-    if (hoursUntil < 72) return 'shadow-[4px_4px_0px_0px_#FFDE59]'
-    return 'shadow-[4px_4px_0px_0px_#000000]'
-  }
+  const urgency = getTaskUrgency(task.deadline)
+  const shadowClass = getUrgencyShadow(urgency)
 
   return (
     <div
@@ -104,7 +96,7 @@ export function TaskCard({ task, onDelete }: TaskCardProps) {
       className={`
         bg-white p-3 cursor-grab active:cursor-grabbing
         border-2 border-black
-        ${getUrgencyShadow()}
+        ${shadowClass}
         hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px] transition-all
       `}
       {...attributes}
