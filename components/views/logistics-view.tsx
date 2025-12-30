@@ -1,13 +1,22 @@
 'use client'
 
-import { DndContext, DragEndEvent } from '@dnd-kit/core'
+import { useState } from 'react'
+import {
+  DndContext,
+  DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useTasks, useUpdateTask, useDeleteTask } from '@/hooks/use-tasks'
-import { useUIStore } from '@/hooks/use-ui-store'
 import { TaskCard } from '@/components/task-card'
+import { CompactTaskCard } from '@/components/compact-task-card'
 import { DroppableZone } from '@/components/droppable-zone'
 import { AudioRecorder } from '@/components/audio-recorder'
-import { TaskStatus, TaskType } from '@/types'
+import { TaskStatus, TaskType, Task } from '@/types'
 import { toast } from 'sonner'
 
 export function LogisticsView() {
@@ -15,7 +24,17 @@ export function LogisticsView() {
   const updateMutation = useUpdateTask()
   const deleteMutation = useDeleteTask()
 
-  const { setIsDragging } = useUIStore()
+  // Local state for DragOverlay (replaces Zustand isDragging)
+  const [activeTask, setActiveTask] = useState<Task | null>(null)
+
+  // Configure Sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5, // Prevent accidental drags (click vs drag)
+      },
+    })
+  )
 
   // Compute Dock fullness from React Query state
   const dockedTasks = tasks.filter((t) => t.status === TaskStatus.IN_DOCK)
@@ -38,12 +57,13 @@ export function LogisticsView() {
   // ============================================================
   // DnD Handlers
   // ============================================================
-  const handleDragStart = () => {
-    setIsDragging(true)
+  const handleDragStart = (event: DragStartEvent) => {
+    const task = tasks.find((t) => t.id === event.active.id)
+    setActiveTask(task || null)
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
-    setIsDragging(false)
+    setActiveTask(null) // Clear Ghost
 
     const { active, over } = event
     if (!over) return
@@ -99,28 +119,43 @@ export function LogisticsView() {
   }
 
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
       <div className="space-y-4">
         {/* ============================================ */}
-        {/* TOP SECTION: INPUT & INBOX */}
+        {/* TOP SECTION: INBOX (含錄音輸入) */}
         {/* ============================================ */}
-        <section>
-          <AudioRecorder />
-        </section>
-
         <DroppableZone
           id="inbox"
           label="INBOX (AI DRAFTS)"
-          isEmpty={draftTasks.length === 0}
+          isEmpty={false}
+          zoneType="inbox"
         >
-          <SortableContext
-            items={draftTasks.map((t) => t.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            {draftTasks.map((task) => (
-              <TaskCard key={task.id} task={task} onDelete={handleDelete} />
-            ))}
-          </SortableContext>
+          {/* 錄音輸入區（永遠顯示） */}
+          <div className="neo-card p-6 mb-4 bg-linear-to-br from-blue-50 to-white">
+            <AudioRecorder />
+          </div>
+
+          {/* 草稿任務列表 */}
+          {draftTasks.length === 0 ? (
+            <p className="text-xs font-mono text-stone-400 text-center py-8">
+              NO DRAFTS YET - START RECORDING!
+            </p>
+          ) : (
+            <SortableContext
+              items={draftTasks.map((t) => t.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-2">
+                {draftTasks.map((task) => (
+                  <TaskCard key={task.id} task={task} onDelete={handleDelete} />
+                ))}
+              </div>
+            </SortableContext>
+          )}
         </DroppableZone>
 
         {/* ============================================ */}
@@ -132,6 +167,8 @@ export function LogisticsView() {
             id="school"
             label="SCHOOL"
             isEmpty={schoolTasks.length === 0}
+            zoneType="school"
+            className="bg-neutral-100! shadow-none!"
           >
             <SortableContext
               items={schoolTasks.map((t) => t.id)}
@@ -148,6 +185,8 @@ export function LogisticsView() {
             id="skill"
             label="SKILL"
             isEmpty={skillTasks.length === 0}
+            zoneType="skill"
+            className="bg-neutral-100! shadow-none!"
           >
             <SortableContext
               items={skillTasks.map((t) => t.id)}
@@ -164,6 +203,8 @@ export function LogisticsView() {
             id="misc"
             label="MISC"
             isEmpty={miscTasks.length === 0}
+            zoneType="misc"
+            className="bg-neutral-100! shadow-none!"
           >
             <SortableContext
               items={miscTasks.map((t) => t.id)}
@@ -176,6 +217,14 @@ export function LogisticsView() {
           </DroppableZone>
         </section>
       </div>
+
+      {/* ============================================ */}
+      {/* DragOverlay: Compact Ghost Card */}
+      {/* Ghost appears at cursor position (no transition from original card) */}
+      {/* ============================================ */}
+      <DragOverlay dropAnimation={null}>
+        {activeTask && <CompactTaskCard task={activeTask} />}
+      </DragOverlay>
     </DndContext>
   )
 }

@@ -33,7 +33,8 @@ export function TaskCard({ task, onDelete }: TaskCardProps) {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    // Hide original card when dragging (Ghost takes over)
+    opacity: isDragging ? 0 : 1,
   }
 
   // ============================================================
@@ -68,32 +69,32 @@ export function TaskCard({ task, onDelete }: TaskCardProps) {
   }
 
   // ============================================================
-  // Type Badge Styling
+  // Type Badge Styling (更新為新粗野主義配色)
   // ============================================================
   const getTypeColor = (type: TaskType) => {
     switch (type) {
       case TaskType.SCHOOL:
-        return 'bg-stone-900 text-white'
+        return 'bg-[#FFDE59] text-black border-2 border-black'
       case TaskType.SKILL:
-        return 'bg-blue-500 text-white'
+        return 'bg-[#54A0FF] text-white border-2 border-black'
       case TaskType.MISC:
-        return 'bg-yellow-400 text-stone-900'
+        return 'bg-[#FF6B6B] text-white border-2 border-black'
     }
   }
 
   // ============================================================
-  // Urgency Styling
+  // Urgency Styling (改為陰影顏色而非邊框顏色)
   // ============================================================
-  const getUrgencyBorder = () => {
-    if (!task.deadline) return 'border-stone-900'
+  const getUrgencyShadow = () => {
+    if (!task.deadline) return 'shadow-[4px_4px_0px_0px_#000000]'
 
     const now = new Date()
     const deadline = new Date(task.deadline)
     const hoursUntil = (deadline.getTime() - now.getTime()) / (1000 * 60 * 60)
 
-    if (hoursUntil < 24) return 'border-red-500 border-4'
-    if (hoursUntil < 72) return 'border-yellow-400 border-4'
-    return 'border-stone-900'
+    if (hoursUntil < 24) return 'shadow-[4px_4px_0px_0px_#FF0000]'
+    if (hoursUntil < 72) return 'shadow-[4px_4px_0px_0px_#FFDE59]'
+    return 'shadow-[4px_4px_0px_0px_#000000]'
   }
 
   return (
@@ -101,9 +102,10 @@ export function TaskCard({ task, onDelete }: TaskCardProps) {
       ref={setNodeRef}
       style={style}
       className={`
-        neo-card p-3 cursor-grab active:cursor-grabbing
-        border-2 ${getUrgencyBorder()}
-        hover:shadow-neo-lg transition-all
+        bg-white p-3 cursor-grab active:cursor-grabbing
+        border-2 border-black
+        ${getUrgencyShadow()}
+        hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px] transition-all
       `}
       {...attributes}
       {...listeners}
