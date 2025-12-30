@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Mic, Square, Loader2 } from "lucide-react";
+import { Mic, Square, Loader2, Upload } from "lucide-react";
 import { useSpeechToText } from "@/hooks/use-speech";
 
 export function AudioRecorder() {
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { mutate: sendAudio, isPending } = useSpeechToText();
 
@@ -43,6 +44,13 @@ export function AudioRecorder() {
     }
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      sendAudio(file); // File extends Blob
+    }
+  };
+
   // 1. 處理中狀態 (AI Thinking)
   if (isPending) {
     return (
@@ -61,33 +69,47 @@ export function AudioRecorder() {
   // 2. 正常/錄音狀態
   return (
     <div className="flex flex-col items-center gap-4">
-      <button
-        onClick={isRecording ? stopRecording : startRecording}
-        // ⚠️ 關鍵修改：
-        // 1. 移除了 'neo-button' class (因為它會強制背景變白)
-        // 2. 手動加上 neo 風格的邊框和陰影: border-2 border-neo-black shadow-neo
-        className={`
-          w-20 h-20 rounded-full flex items-center justify-center transition-all
-          border-2 border-neo-black shadow-neo active:shadow-none active:translate-x-[2px] active:translate-y-[2px] cursor-pointer
-          ${
-            isRecording
-              ? "bg-neo-red hover:bg-red-400"
-              : "bg-neo-blue hover:bg-blue-400"
-          }
-        `}
-      >
-        {isRecording ? (
-          <Square className="h-8 w-8 text-white fill-current animate-pulse" />
-        ) : (
-          <Mic className="h-8 w-8 text-white" />
-        )}
-      </button>
+      <div className="flex items-center gap-4">
+        <button
+          onClick={isRecording ? stopRecording : startRecording}
+          className={`
+            w-20 h-20 rounded-full flex items-center justify-center transition-all
+            border-2 border-neo-black shadow-neo active:shadow-none active:translate-x-[2px] active:translate-y-[2px] cursor-pointer
+            ${
+              isRecording
+                ? "bg-neo-red hover:bg-red-400"
+                : "bg-neo-blue hover:bg-blue-400"
+            }
+          `}
+        >
+          {isRecording ? (
+            <Square className="h-8 w-8 text-white fill-current animate-pulse" />
+          ) : (
+            <Mic className="h-8 w-8 text-white" />
+          )}
+        </button>
+
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="w-20 h-20 rounded-full flex items-center justify-center transition-all border-2 border-neo-black shadow-neo active:shadow-none active:translate-x-[2px] active:translate-y-[2px] cursor-pointer bg-stone-600 hover:bg-stone-500"
+        >
+          <Upload className="h-8 w-8 text-white" />
+        </button>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="audio/*"
+          onChange={handleFileUpload}
+          className="hidden"
+        />
+      </div>
 
       <div className="text-sm font-mono font-bold text-stone-500 uppercase tracking-widest">
         {isRecording ? (
           <span className="text-neo-red animate-pulse">● Recording...</span>
         ) : (
-          "Click to Input Command"
+          "Record or Upload Audio"
         )}
       </div>
     </div>

@@ -5,6 +5,7 @@ import { NeoTabs } from "@/components/neo-tabs";
 import { LogisticsView } from "@/components/views/logistics-view";
 import { DashboardView } from "@/components/views/dashboard-view";
 import { RuntimeView } from "@/components/views/runtime-view";
+import { GlobalDock } from "@/components/global-dock";
 
 type Tab = "logistics" | "dashboard" | "runtime";
 
@@ -52,11 +53,14 @@ export default function Home() {
       </div>
 
       {/* 3. 主要內容區 (根據 Tab 切換) */}
-      <main className="flex-1 p-8 max-w-6xl mx-auto w-full">
+      <main className="flex-1 p-8 max-w-6xl mx-auto w-full pb-55">
         {activeTab === "logistics" && <LogisticsView />}
         {activeTab === "dashboard" && <DashboardView />}
         {activeTab === "runtime" && <RuntimeView />}
       </main>
+
+      {/* 4. Global Dock (固定在底部) */}
+      <GlobalDock />
     </div>
   );
 }

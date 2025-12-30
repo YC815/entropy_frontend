@@ -1,11 +1,15 @@
 "use client";
 
 import { useDashboard } from "@/hooks/use-dashboard";
+import { useTasks } from "@/hooks/use-tasks";
 import { Shield, Brain, Zap, Activity, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TaskCard } from "@/components/task-card";
+import { TaskStatus } from "@/types";
 
 export function DashboardView() {
   const { data, isLoading, isError, error } = useDashboard();
+  const { data: tasks = [] } = useTasks();
 
   if (isLoading) {
     return (
@@ -165,6 +169,21 @@ export function DashboardView() {
             </div>
           )}
         </div>
+      </section>
+
+      {/* Strategic Map */}
+      <section className="neo-card p-6">
+        <h2 className="font-display text-2xl mb-4">STRATEGIC MAP</h2>
+        <div className="grid grid-cols-2 gap-4">
+          {tasks
+            .filter((t) => t.status === TaskStatus.STAGED)
+            .map((task) => (
+              <TaskCard key={task.id} task={task} />
+            ))}
+        </div>
+        {tasks.filter((t) => t.status === TaskStatus.STAGED).length === 0 && (
+          <p className="font-mono text-stone-400">No staged tasks</p>
+        )}
       </section>
     </div>
   );

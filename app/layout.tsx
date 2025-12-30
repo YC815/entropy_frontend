@@ -5,6 +5,7 @@ import "./globals.css";
 
 // 引入你原本的 Provider (保持不變)
 import QueryProvider from "@/components/providers/query-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 // 2. 設定 Archivo Black (用於大標題)
 const archivo = Archivo_Black({
@@ -40,6 +41,7 @@ export default function RootLayout({
         className={`${archivo.variable} ${mono.variable} antialiased bg-stone-100 text-stone-900`}
       >
         <QueryProvider>{children}</QueryProvider>
+        <Toaster />
       </body>
     </html>
   );
