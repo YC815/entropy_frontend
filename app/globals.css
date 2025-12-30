@@ -1,13 +1,40 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* 👇 加入這兩行，強制告訴 Tailwind 掃描 app 和 components 資料夾 */
+@source "../app";
+@source "../components";
+
 @custom-variant dark (&:is(.dark *));
 
+/* ... (後面保持不變) ... */
+
 @theme inline {
+  /* === Shadcn 系統變數 (保留原樣) === */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  /* ⚠️ 修改：將 Mono 字體對應到 layout.tsx 設定的 JetBrains Mono */
+  --font-mono: var(--font-mono);
+
+  /* ✅ 新增：標題字體 (對應 layout.tsx 的 Archivo Black) */
+  --font-display: var(--font-archivo);
+
+  /* === EntroPy 核心風格變數 (新增) === */
+  --color-neo-bg: #f5f5f4; /* stone-100 */
+  --color-neo-black: #1c1917; /* stone-900 */
+  --color-neo-white: #ffffff;
+  --color-neo-blue: #3b82f6; /* Flow State */
+  --color-neo-red: #ef4444; /* Brain Fog */
+  --color-neo-yellow: #eab308; /* Warning */
+
+  /* Neo-Brutalism 硬陰影定義 */
+  --shadow-neo: 4px 4px 0px 0px var(--color-neo-black);
+  --shadow-neo-sm: 2px 2px 0px 0px var(--color-neo-black);
+  --shadow-neo-lg: 6px 6px 0px 0px var(--color-neo-black);
+
+  /* === 下方是 Shadcn 的其餘設定 (保留) === */
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -121,5 +148,31 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* ✅ 新增：讓標題預設使用我們的新粗獷字體 */
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display uppercase tracking-tight;
+  }
+}
+
+/* ✅ 新增：EntroPy 專屬的 Utility Class */
+@layer utilities {
+  /* 硬邊框卡片 */
+  .neo-card {
+    @apply border-2 border-neo-black bg-neo-white shadow-neo;
+  }
+
+  /* 可按壓的按鈕效果 */
+  .neo-button {
+    @apply border-2 border-neo-black bg-neo-white shadow-neo transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none hover:bg-stone-50 cursor-pointer;
+  }
+
+  /* 輸入框 */
+  .neo-input {
+    @apply border-2 border-neo-black bg-transparent p-2 outline-none focus:shadow-neo-sm transition-shadow placeholder:text-stone-400;
   }
 }

@@ -1,44 +1,64 @@
 // types/index.ts
 
-// 任務類型
-export type TaskType = "SCHOOL" | "SKILL" | "MISC";
+// 1. 任務類型 (後端回傳值為小寫)
+export enum TaskType {
+  SCHOOL = "school",
+  SKILL = "skill",
+  MISC = "misc",
+}
 
-// 任務狀態
-export type TaskStatus = "DRAFT" | "STAGED" | "IN_DOCK" | "COMPLETED" | "ARCHIVED";
+// 任務狀態 (後端回傳值為小寫)
+export enum TaskStatus {
+  DRAFT = "draft",
+  STAGED = "staged",
+  IN_DOCK = "in_dock",
+  COMPLETED = "completed",
+  INCINERATED = "incinerated",
+}
 
 // 核心任務物件 (對應後端 TaskResponse)
 export interface Task {
   id: number;
   title: string;
   type: TaskType;
-  difficulty: number;
   status: TaskStatus;
-  deadline?: string; // ISO String
-  estimated_hours?: number;
+  difficulty: number; // 1-10
+  xp_value: number;   // Base XP
+  deadline: string | null; // ISO String or null
   created_at: string;
-  updated_at?: string;
+  updated_at: string;
 }
 
 // 建立任務時需要的資料
 export interface TaskCreatePayload {
   title: string;
   type: TaskType;
-  difficulty: number;
-  deadline?: string;
+  difficulty?: number;
+  xp_value?: number;
+  deadline?: string | null;
 }
 
-// 儀表板資料 (對應後端 DashboardResponse)
+// === Dashboard 相關定義 ===
+
+export interface UserInfo {
+  level: number;
+  current_xp: number;
+  blackhole_days: number;
+}
+
+export interface StressItem {
+  task_title: string;
+  days_left: number;      // ✅ 修正：這是 page.tsx 裡用到的
+  stress_impact: number;  // ✅ 修正：後端回傳欄位名是 impact
+}
+
 export interface DashboardData {
-  user_info: {
-    level: number;
-    current_xp: number;
-    blackhole_days: number;
-  };
-  integrity: number; // HP
-  stress_breakdown: Array<{
-    task_title: string;
-    stress_value: number;
-  }>;
+  user_info: UserInfo;
+  integrity: number;      // HP
+  total_stress: number;   // ✅ 新增
+  multiplier: number;     // ✅ 新增
+  status: string;         // ✅ 新增："FLOW" | "NORMAL" | "BRAIN_FOG"
+  stress_breakdown: StressItem[];
 }
 
 // 結算回應
