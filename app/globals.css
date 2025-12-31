@@ -18,8 +18,11 @@
   /* ⚠️ 修改：將 Mono 字體對應到 layout.tsx 設定的 JetBrains Mono */
   --font-mono: var(--font-mono);
 
-  /* ✅ 新增：標題字體 (對應 layout.tsx 的 Archivo Black) */
-  --font-display: var(--font-archivo);
+  /* ✅ 新增：標題字體 (英文優先用 Archivo Black，中文用 Noto Sans TC 900 補強) */
+  --font-display: var(--font-archivo), var(--font-noto-sans);
+
+  /* ✅ 新增：內文字體 (Noto Sans TC) */
+  --font-sans: var(--font-noto-sans);
 
   /* === EntroPy 核心風格變數 (新增) === */
   --color-neo-bg: #f5f5f4; /* stone-100 */
@@ -155,7 +158,12 @@
   h2,
   h3,
   h4 {
-    @apply font-display uppercase tracking-tight;
+    @apply font-display font-black uppercase tracking-tighter;
+  }
+
+  /* ✅ 新增：內文使用 Noto Sans TC 中等字重 */
+  body {
+    @apply font-sans font-normal;
   }
 }
 
