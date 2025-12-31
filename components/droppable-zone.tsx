@@ -48,8 +48,8 @@ export function DroppableZone({
         ${className}
       `}
     >
-      <h3 className="font-display text-lg mb-4">{label}</h3>
-      <div className="space-y-2">
+      <h3 className={`font-display text-lg ${type === 'dock' ? 'mb-1 text-sm' : 'mb-4'}`}>{label}</h3>
+      <div className={type === 'dock' ? 'space-y-1' : 'space-y-2'}>
         {isEmpty ? (
           <p className="text-xs font-mono text-stone-400">DROP HERE...</p>
         ) : (

@@ -30,9 +30,9 @@ export function GlobalDock({ isVisible = true }: GlobalDockProps) {
         label="GLOBAL DOCK"
         isEmpty={false}
         type="dock"
-        className="bg-white text-black"
+        className="bg-white text-black p-2! min-h-0!"
       >
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-1">
           <span className="font-mono text-xs text-black opacity-70">
             {dockedTasks.length} / 3
           </span>
