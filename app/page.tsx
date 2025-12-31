@@ -14,7 +14,7 @@ import { NeoTabs } from "@/components/neo-tabs";
 import { LogisticsView } from "@/components/views/logistics-view";
 import { DashboardView } from "@/components/views/dashboard-view";
 import { GlobalDock } from "@/components/global-dock";
-import { CompactTaskCard } from "@/components/compact-task-card";
+import { TaskCard } from "@/components/task-card";
 import { useTasks, useUpdateTaskStatus } from "@/hooks/use-tasks";
 import { Task } from "@/types";
 
@@ -110,7 +110,11 @@ export default function Home() {
 
         {/* 5. DragOverlay (顯示拖曳中的卡片) */}
         <DragOverlay dropAnimation={null}>
-          {activeTask && <CompactTaskCard task={activeTask} />}
+          {activeTask && (
+            <div className="cursor-grabbing rotate-6 opacity-90">
+              <TaskCard task={activeTask} />
+            </div>
+          )}
         </DragOverlay>
       </div>
     </DndContext>
