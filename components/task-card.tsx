@@ -7,14 +7,15 @@ import { useState } from 'react'
 import { useUpdateTask } from '@/hooks/use-tasks'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, Flame } from 'lucide-react'
-import { getTaskUrgency, getUrgencyShadow } from '@/lib/utils'
+import { cn, getTaskUrgency, getUrgencyShadow } from '@/lib/utils'
 
 interface TaskCardProps {
   task: Task
   onDelete?: (id: number) => void
+  className?: string
 }
 
-export function TaskCard({ task, onDelete }: TaskCardProps) {
+export function TaskCard({ task, onDelete, className }: TaskCardProps) {
   const {
     attributes,
     listeners,
@@ -93,12 +94,15 @@ export function TaskCard({ task, onDelete }: TaskCardProps) {
     <div
       ref={setNodeRef}
       style={style}
-      className={`
-        bg-white p-3 cursor-grab active:cursor-grabbing
-        border-2 border-black
-        ${shadowClass}
-        hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px] transition-all
-      `}
+      className={cn(
+        `
+          bg-white p-3 cursor-grab active:cursor-grabbing
+          border-2 border-black
+          ${shadowClass}
+          hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px] transition-all
+        `,
+        className
+      )}
       {...attributes}
       {...listeners}
     >

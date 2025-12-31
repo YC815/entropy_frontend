@@ -1,88 +1,80 @@
 "use client";
 
-import { useDroppable } from "@dnd-kit/core";
-import { useTasks, useUpdateTask } from "@/hooks/use-tasks";
+import { useTasks, useUpdateTaskStatus, useCompleteTask } from "@/hooks/use-tasks";
 import { TaskStatus } from "@/types";
-import { X } from "lucide-react";
+import { DroppableZone } from "@/components/droppable-zone";
+import { DockCard } from "@/components/dock-card";
 import { toast } from "sonner";
 
-export function GlobalDock() {
-  const { data: tasks = [] } = useTasks();
-  const { setNodeRef, isOver } = useDroppable({ id: "dock" });
-  const updateMutation = useUpdateTask();
+interface GlobalDockProps {
+  isVisible?: boolean;
+}
 
-  // ============================================================
-  // DERIVED STATE: Dock tasks from React Query (SINGLE SOURCE OF TRUTH)
-  // ============================================================
+export function GlobalDock({ isVisible = true }: GlobalDockProps) {
+  const { data: tasks = [] } = useTasks();
+  const updateStatusMutation = useUpdateTaskStatus();
+  const completeMutation = useCompleteTask();
+
   const dockedTasks = tasks.filter((t) => t.status === TaskStatus.IN_DOCK);
-  const isFull = dockedTasks.length >= 3;
 
   return (
     <div
-      ref={setNodeRef}
       className={`
         fixed bottom-6 left-1/2 -translate-x-1/2 z-50
-        max-w-2xl transition-all duration-200
-        ${isOver && !isFull ? "scale-105" : "scale-100"}
-        ${isOver && isFull ? "animate-pulse" : ""}
+        w-full max-w-2xl transition-opacity duration-200
+        ${isVisible ? "opacity-100" : "opacity-0 pointer-events-none"}
       `}
     >
-      {/* 懸浮島背景 */}
-      <div className="neo-card p-4 bg-stone-900 text-white">
-        <div className="flex items-center justify-between mb-3 text-black">
-          <h2 className="font-display text-sm tracking-wider">GLOBAL DOCK</h2>
-          <span className="font-mono text-xs opacity-70">
+      <DroppableZone
+        id="dock"
+        label="GLOBAL DOCK"
+        isEmpty={false}
+        type="dock"
+        className="bg-white text-black"
+      >
+        <div className="flex items-center justify-between mb-3">
+          <span className="font-mono text-xs text-black opacity-70">
             {dockedTasks.length} / 3
           </span>
+          <span className="font-mono text-xs text-black opacity-70">CAPACITY</span>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 ">
-          {[0, 1, 2].map((slotIndex) => {
-            const task = dockedTasks[slotIndex];
-            return (
-              <div
-                key={slotIndex}
-                className={`
-                  border-2 border-white/20 rounded p-3 min-h-20
-                  flex flex-col justify-between text-black
-                  ${!task ? "opacity-30 border-dashed" : "bg-white/10"}
-                `}
-              >
-                {task ? (
-                  <>
-                    <p className="font-display text-xs line-clamp-2 leading-tight">
-                      {task.title}
-                    </p>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        updateMutation.mutate({
-                          id: task.id,
-                          status: TaskStatus.STAGED,
-                          type: task.type,
-                        });
+        {dockedTasks.length === 0 ? (
+          <p className="text-xs font-mono text-black opacity-70">
+            DRAG TASKS FROM STRATEGIC MAP
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {dockedTasks.slice(0, 3).map((task) => (
+              <DockCard
+                key={task.id}
+                task={task}
+                onComplete={(taskId) => {
+                  completeMutation.mutate(taskId, {
+                    onSuccess: () => {
+                      toast.success("Task Completed", {
+                        description: "Marked as done.",
+                      });
+                    },
+                  });
+                }}
+                onUndock={(taskId) => {
+                  updateStatusMutation.mutate(
+                    { taskId, target: "staged" },
+                    {
+                      onSuccess: () => {
                         toast.info("Task Undocked", {
                           description: "Returned to Strategic Map",
                         });
-                      }}
-                      className="self-end p-1 hover:bg-stone-500/20 rounded transition-colors"
-                      title="Undock task"
-                    >
-                      <X className="w-3 h-3 text-stone-400 hover:text-stone-600" />
-                    </button>
-                  </>
-                ) : (
-                  <p className="font-mono text-xs text-center opacity-50 m-auto">
-                    SLOT {slotIndex + 1}
-                    <br />
-                    EMPTY
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+                      },
+                    }
+                  );
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </DroppableZone>
     </div>
   );
 }

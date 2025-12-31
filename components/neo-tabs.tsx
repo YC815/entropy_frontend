@@ -1,8 +1,8 @@
 "use client";
 
-import { Box, LayoutDashboard, PlayCircle } from "lucide-react";
+import { Box, LayoutDashboard } from "lucide-react";
 
-type Tab = "logistics" | "dashboard" | "runtime";
+type Tab = "logistics" | "dashboard";
 
 interface NeoTabsProps {
   currentTab: Tab;
@@ -13,7 +13,6 @@ export function NeoTabs({ currentTab, onTabChange }: NeoTabsProps) {
   const tabs = [
     { id: "logistics", label: "LOGISTICS", icon: Box },
     { id: "dashboard", label: "DASHBOARD", icon: LayoutDashboard },
-    { id: "runtime", label: "RUNTIME", icon: PlayCircle },
   ] as const;
 
   return (

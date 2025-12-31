@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -13,26 +13,22 @@ import {
 import { NeoTabs } from "@/components/neo-tabs";
 import { LogisticsView } from "@/components/views/logistics-view";
 import { DashboardView } from "@/components/views/dashboard-view";
-import { RuntimeView } from "@/components/views/runtime-view";
 import { GlobalDock } from "@/components/global-dock";
 import { CompactTaskCard } from "@/components/compact-task-card";
-import { useTasks, useUpdateTask } from "@/hooks/use-tasks";
-import { Task, TaskStatus, TaskType } from "@/types";
-import { toast } from "sonner";
+import { useTasks, useUpdateTaskStatus } from "@/hooks/use-tasks";
+import { Task } from "@/types";
 
-type Tab = "logistics" | "dashboard" | "runtime";
+type Tab = "logistics" | "dashboard";
+type DropTarget = "school" | "skill" | "misc" | "dock";
 
 export default function Home() {
-  // 預設停在 Logistics (因為你要先輸入任務) 或是 Dashboard (看狀態)
-  // 這裡我設為 dashboard 讓你先看到熟悉的畫面，你可以改成 "logistics"
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
-  const [time, setTime] = useState<string>("");
 
   // ============================================================
   // DnD State (提升到頂層)
   // ============================================================
   const { data: tasks = [] } = useTasks();
-  const updateMutation = useUpdateTask();
+  const updateStatusMutation = useUpdateTaskStatus();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   const sensors = useSensors(
@@ -40,29 +36,6 @@ export default function Home() {
       activationConstraint: { distance: 5 },
     })
   );
-
-  // Dock fullness check
-  const dockedTasks = useMemo(
-    () => tasks.filter((t) => t.status === TaskStatus.IN_DOCK),
-    [tasks]
-  );
-  const isDockFull = dockedTasks.length >= 3;
-
-  // ============================================================
-  // Zone Mapping Helper (must be before handleDragEnd)
-  // ============================================================
-  const getUpdatesForZone = useCallback((zone: string) => {
-    const zoneMap: Record<
-      string,
-      Partial<{ status: TaskStatus; type: TaskType }>
-    > = {
-      school: { status: TaskStatus.STAGED, type: TaskType.SCHOOL },
-      skill: { status: TaskStatus.STAGED, type: TaskType.SKILL },
-      misc: { status: TaskStatus.STAGED, type: TaskType.MISC },
-      dock: { status: TaskStatus.IN_DOCK },
-    };
-    return zoneMap[zone] || null;
-  }, []);
 
   // ============================================================
   // DnD Handlers
@@ -84,31 +57,17 @@ export default function Home() {
       const taskId = active.id as number;
       const targetZone = over.id as string;
 
-      // Dock full check
-      if (targetZone === "dock" && isDockFull) {
-        toast.error("DOCK FULL", {
-          description: "Maximum 3 tasks allowed in Dock",
-          duration: 2000,
-        });
+      if (!["school", "skill", "misc", "dock"].includes(targetZone)) {
         return;
       }
 
-      // Zone mapping
-      const updates = getUpdatesForZone(targetZone);
-      if (!updates) return;
-
-      updateMutation.mutate({ id: taskId, ...updates });
+      updateStatusMutation.mutate({
+        taskId,
+        target: targetZone as DropTarget,
+      });
     },
-    [isDockFull, updateMutation, getUpdatesForZone]
+    [updateStatusMutation]
   );
-
-  // Time display
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTime(new Date().toLocaleTimeString("en-US", { hour12: false }));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   return (
     <DndContext
@@ -130,13 +89,8 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <div className="text-right">
-            <div className="font-display text-2xl tabular-nums tracking-widest">
-              {time}
-            </div>
-            <div className="text-xs font-mono font-bold text-green-600">
-              SYSTEM ONLINE
-            </div>
+          <div className="text-right text-xs font-mono font-bold text-green-600">
+            SYSTEM ONLINE
           </div>
         </header>
 
@@ -149,11 +103,10 @@ export default function Home() {
         <main className="flex-1 p-8 max-w-6xl mx-auto w-full pb-55">
           {activeTab === "logistics" && <LogisticsView />}
           {activeTab === "dashboard" && <DashboardView />}
-          {activeTab === "runtime" && <RuntimeView />}
         </main>
 
         {/* 4. Global Dock (固定在底部) */}
-        <GlobalDock />
+        <GlobalDock isVisible={activeTab === "dashboard"} />
 
         {/* 5. DragOverlay (顯示拖曳中的卡片) */}
         <DragOverlay dropAnimation={null}>

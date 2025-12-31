@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Task, TaskStatus, TaskType } from '@/types'
+import { toast } from 'sonner'
 
 // ============================================================
 // QUERIES
@@ -27,6 +28,75 @@ interface UpdateTaskPayload {
   status?: TaskStatus
   deadline?: string | null
   difficulty?: number
+}
+
+type TaskDropTarget = 'school' | 'skill' | 'misc' | 'dock' | 'staged'
+
+interface UpdateTaskStatusPayload {
+  taskId: number
+  target: TaskDropTarget
+}
+
+const targetUpdates: Record<TaskDropTarget, Partial<Task>> = {
+  school: { status: TaskStatus.STAGED, type: TaskType.SCHOOL },
+  skill: { status: TaskStatus.STAGED, type: TaskType.SKILL },
+  misc: { status: TaskStatus.STAGED, type: TaskType.MISC },
+  dock: { status: TaskStatus.IN_DOCK },
+  staged: { status: TaskStatus.STAGED },
+}
+
+const getDockCount = (tasks?: Task[]) =>
+  tasks?.filter((task) => task.status === TaskStatus.IN_DOCK).length ?? 0
+
+export function useUpdateTaskStatus() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ taskId, target }: UpdateTaskStatusPayload) => {
+      const updates = targetUpdates[target]
+      const { data } = await api.patch<Task>(`/tasks/${taskId}`, updates)
+      return data
+    },
+
+    onMutate: async ({ taskId, target }) => {
+      await queryClient.cancelQueries({ queryKey: ['tasks'] })
+
+      const previousTasks = queryClient.getQueryData<Task[]>(['tasks'])
+
+      if (target === 'dock' && getDockCount(previousTasks) >= 3) {
+        throw new Error('DOCK_FULL')
+      }
+
+      const updates = targetUpdates[target]
+      queryClient.setQueryData<Task[]>(['tasks'], (old) => {
+        if (!old) return []
+        return old.map((task) =>
+          task.id === taskId ? { ...task, ...updates } : task
+        )
+      })
+
+      return { previousTasks }
+    },
+
+    onError: (err, variables, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(['tasks'], context.previousTasks)
+      }
+      if (err instanceof Error && err.message === 'DOCK_FULL') {
+        toast.error('DOCK FULL', {
+          description: 'Maximum 3 tasks allowed in Dock',
+          duration: 2000,
+        })
+      } else {
+        console.error('Task status update failed:', err)
+      }
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
 }
 
 export function useUpdateTask() {
@@ -73,6 +143,43 @@ export function useUpdateTask() {
     },
 
     // Always refetch after success
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
+export function useCompleteTask() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (taskId: number) => {
+      const { data } = await api.patch<Task>(`/tasks/${taskId}`, {
+        status: TaskStatus.COMPLETED,
+      })
+      return data
+    },
+    onMutate: async (taskId) => {
+      await queryClient.cancelQueries({ queryKey: ['tasks'] })
+
+      const previousTasks = queryClient.getQueryData<Task[]>(['tasks'])
+
+      queryClient.setQueryData<Task[]>(['tasks'], (old) => {
+        if (!old) return []
+        return old.map((task) =>
+          task.id === taskId ? { ...task, status: TaskStatus.COMPLETED } : task
+        )
+      })
+
+      return { previousTasks }
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(['tasks'], context.previousTasks)
+      }
+      console.error('Task completion failed:', err)
+    },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })

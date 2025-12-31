@@ -8,7 +8,7 @@ import { Shield, Brain, Zap, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TaskCard } from "@/components/task-card";
 import { TaskStatus } from "@/types";
-import { getTaskUrgency } from "@/lib/utils";
+import { getTaskUrgency, getUrgencyStyles } from "@/lib/utils";
 
 export function DashboardView() {
   const { data, isLoading, isError, error } = useDashboard();
@@ -180,9 +180,13 @@ export function DashboardView() {
               items={sortedTasks.map((t) => t.id)}
               strategy={rectSortingStrategy}
             >
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {sortedTasks.map((task) => (
-                  <TaskCard key={task.id} task={task} />
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    className={getUrgencyStyles(getTaskUrgency(task.deadline))}
+                  />
                 ))}
               </div>
             </SortableContext>
