@@ -3,7 +3,7 @@
 import { useDroppable } from '@dnd-kit/core'
 import { ReactNode } from 'react'
 
-type ZoneType = 'school' | 'skill' | 'misc' | 'dock'
+type ZoneType = 'school' | 'skill' | 'misc'
 
 interface DroppableZoneProps {
   id: string
@@ -34,8 +34,6 @@ export function DroppableZone({
         return `${baseHover} border-neo-blue border-4 bg-blue-50 scale-[1.02]`
       case 'misc':
         return `${baseHover} border-neo-yellow border-4 bg-yellow-50 scale-[1.02]`
-      case 'dock':
-        return `${baseHover} border-dashed border-4 border-neo-black scale-105`
     }
   }
 
@@ -48,8 +46,8 @@ export function DroppableZone({
         ${className}
       `}
     >
-      <h3 className={`font-display text-lg ${type === 'dock' ? 'mb-1 text-sm' : 'mb-4'}`}>{label}</h3>
-      <div className={type === 'dock' ? 'space-y-1' : 'space-y-2'}>
+      <h3 className="font-display text-lg mb-4">{label}</h3>
+      <div className="space-y-2">
         {isEmpty ? (
           <p className="text-xs font-mono text-stone-400">DROP HERE...</p>
         ) : (

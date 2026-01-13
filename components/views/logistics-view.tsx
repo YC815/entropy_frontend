@@ -17,7 +17,7 @@ export function LogisticsView() {
   const deleteMutation = useDeleteTask()
 
   // ============================================================
-  // Filter Tasks by Status (移除 Dock 相關)
+  // Filter Tasks by Status
   // ============================================================
   const draftTasks = tasks.filter((t) => t.status === TaskStatus.DRAFT)
   const schoolTasks = tasks.filter(

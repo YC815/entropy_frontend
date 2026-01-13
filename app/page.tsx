@@ -13,13 +13,12 @@ import {
 import { NeoTabs } from "@/components/neo-tabs";
 import { LogisticsView } from "@/components/views/logistics-view";
 import { DashboardView } from "@/components/views/dashboard-view";
-import { GlobalDock } from "@/components/global-dock";
 import { TaskCard } from "@/components/task-card";
 import { useTasks, useUpdateTaskStatus } from "@/hooks/use-tasks";
 import { Task } from "@/types";
 
 type Tab = "logistics" | "dashboard";
-type DropTarget = "school" | "skill" | "misc" | "dock";
+type DropTarget = "school" | "skill" | "misc";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
@@ -57,7 +56,7 @@ export default function Home() {
       const taskId = active.id as number;
       const targetZone = over.id as string;
 
-      if (!["school", "skill", "misc", "dock"].includes(targetZone)) {
+      if (!["school", "skill", "misc"].includes(targetZone)) {
         return;
       }
 
@@ -100,15 +99,12 @@ export default function Home() {
         </div>
 
         {/* 3. 主要內容區 (根據 Tab 切換) */}
-        <main className="flex-1 p-8 max-w-6xl mx-auto w-full pb-55">
+        <main className="flex-1 p-8 max-w-6xl mx-auto w-full pb-12">
           {activeTab === "logistics" && <LogisticsView />}
           {activeTab === "dashboard" && <DashboardView />}
         </main>
 
-        {/* 4. Global Dock (固定在底部) */}
-        <GlobalDock isVisible={activeTab === "dashboard"} />
-
-        {/* 5. DragOverlay (顯示拖曳中的卡片) */}
+        {/* 4. DragOverlay (顯示拖曳中的卡片) */}
         <DragOverlay dropAnimation={null}>
           {activeTask && (
             <div className="cursor-grabbing rotate-6 opacity-90">

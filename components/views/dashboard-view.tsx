@@ -1,24 +1,42 @@
 "use client";
 
-import { useMemo } from "react";
-import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
+import { useMemo, useState, useEffect } from "react";
 import { useDashboard } from "@/hooks/use-dashboard";
-import { useTasks } from "@/hooks/use-tasks";
+import { useTasks, useCompleteTask, useUpdateTask } from "@/hooks/use-tasks";
 import { Shield, Brain, Zap, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TaskCard } from "@/components/task-card";
-import { TaskStatus } from "@/types";
-import { getTaskUrgency, getUrgencyStyles } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { TaskStatus, TaskType } from "@/types";
+import { cn, getTaskUrgency, getUrgencyStyles } from "@/lib/utils";
 
 export function DashboardView() {
   const { data, isLoading, isError, error } = useDashboard();
   const { data: tasks = [] } = useTasks();
+  const completeMutation = useCompleteTask();
+  const updateMutation = useUpdateTask();
+  const [showCompleted, setShowCompleted] = useState(false);
+
+  useEffect(() => {
+    if (!showCompleted) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowCompleted(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showCompleted]);
 
   // ============================================================
   // 計算 Staged Tasks (取代舊的 stress_breakdown)
   // ============================================================
   const stagedTasks = useMemo(
     () => tasks.filter((t) => t.status === TaskStatus.STAGED),
+    [tasks]
+  );
+
+  const completedTasks = useMemo(
+    () => tasks.filter((t) => t.status === TaskStatus.COMPLETED),
     [tasks]
   );
 
@@ -31,6 +49,33 @@ export function DashboardView() {
       return urgencyOrder[urgA] - urgencyOrder[urgB];
     });
   }, [stagedTasks]);
+
+  const sortedCompletedTasks = useMemo(() => {
+    return [...completedTasks].sort((a, b) => {
+      const timeA = new Date(a.updated_at).getTime();
+      const timeB = new Date(b.updated_at).getTime();
+      return timeB - timeA;
+    });
+  }, [completedTasks]);
+
+  const getTypeColor = (type: TaskType) => {
+    switch (type) {
+      case TaskType.SCHOOL:
+        return "bg-[#FFDE59] text-black border-2 border-black";
+      case TaskType.SKILL:
+        return "bg-[#54A0FF] text-white border-2 border-black";
+      case TaskType.MISC:
+        return "bg-[#FF6B6B] text-white border-2 border-black";
+    }
+    return "bg-stone-200 text-black border-2 border-black";
+  };
+
+  const formatDeadline = (deadline: string | null) => {
+    if (!deadline) return "No Deadline";
+    const parsed = new Date(deadline);
+    if (Number.isNaN(parsed.getTime())) return "No Deadline";
+    return parsed.toLocaleDateString();
+  };
 
   if (isLoading) {
     return (
@@ -161,13 +206,22 @@ export function DashboardView() {
       {/* Strategic Map (取代 Active Stressors) */}
       {/* ============================================================ */}
       <section className="neo-card p-0 overflow-hidden">
-        <div className="p-4 border-b-2 border-neo-black bg-stone-50 flex items-center justify-between">
+        <div className="p-4 border-b-2 border-neo-black bg-stone-50 flex items-center justify-between gap-3">
           <h3 className="font-display text-xl flex items-center gap-2">
             STRATEGIC MAP
           </h3>
-          <span className="font-mono text-xs bg-neo-black text-neo-white px-2 py-1">
-            COUNT: {stagedTasks.length}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs bg-neo-black text-neo-white px-2 py-1">
+              COUNT: {stagedTasks.length}
+            </span>
+            <button
+              type="button"
+              className="neo-button px-2 py-1 text-xs font-mono"
+              onClick={() => setShowCompleted(true)}
+            >
+              COMPLETED: {completedTasks.length}
+            </button>
+          </div>
         </div>
 
         <div className="p-4">
@@ -176,23 +230,151 @@ export function DashboardView() {
               NO STAGED TASKS. DRAG TASKS FROM LOGISTICS VIEW.
             </div>
           ) : (
-            <SortableContext
-              items={sortedTasks.map((t) => t.id)}
-              strategy={rectSortingStrategy}
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {sortedTasks.map((task) => (
-                  <TaskCard
+            <ul className="space-y-3">
+              {sortedTasks.map((task) => {
+                const urgency = getTaskUrgency(task.deadline);
+                return (
+                  <li
                     key={task.id}
-                    task={task}
-                    className={getUrgencyStyles(getTaskUrgency(task.deadline))}
-                  />
-                ))}
-              </div>
-            </SortableContext>
+                    className={cn(
+                      "neo-card p-3 flex items-start gap-3",
+                      getUrgencyStyles(urgency)
+                    )}
+                  >
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 accent-neo-black"
+                      checked={false}
+                      onChange={(event) => {
+                        if (event.target.checked) {
+                          completeMutation.mutate(task.id);
+                        }
+                      }}
+                      disabled={completeMutation.isPending}
+                      aria-label={`Complete ${task.title}`}
+                    />
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="font-display text-sm">
+                          {task.title}
+                        </div>
+                        <span className="text-[10px] font-mono uppercase text-stone-500">
+                          {urgency}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge className={getTypeColor(task.type)}>
+                          {task.type.toUpperCase()}
+                        </Badge>
+                        <Badge variant="outline" className="font-mono text-xs">
+                          D{task.difficulty}
+                        </Badge>
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {task.xp_value} XP
+                        </Badge>
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {formatDeadline(task.deadline)}
+                        </Badge>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </div>
       </section>
+
+      {showCompleted && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setShowCompleted(false)}
+        >
+          <div
+            className="neo-card w-full max-w-2xl bg-white p-4"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b-2 border-neo-black pb-3">
+              <h4 className="font-display text-lg">COMPLETED TASKS</h4>
+              <button
+                type="button"
+                className="neo-button px-2 py-1 text-xs font-mono"
+                onClick={() => setShowCompleted(false)}
+              >
+                CLOSE
+              </button>
+            </div>
+
+            <div className="mt-4 max-h-[60vh] overflow-y-auto pr-2">
+              {sortedCompletedTasks.length === 0 ? (
+                <div className="py-10 text-center font-mono text-stone-400">
+                  NO COMPLETED TASKS YET.
+                </div>
+              ) : (
+                <ul className="space-y-2">
+                  {sortedCompletedTasks.map((task) => (
+                    <li
+                      key={task.id}
+                      className="neo-card p-3 flex items-start gap-3 bg-stone-50"
+                    >
+                      <input
+                        type="checkbox"
+                        className="mt-1 h-4 w-4 accent-neo-black"
+                        checked={true}
+                        readOnly
+                        aria-label={`${task.title} completed`}
+                      />
+                      <div className="flex-1 space-y-2">
+                        <div className="font-display text-sm">
+                          {task.title}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Badge className={getTypeColor(task.type)}>
+                            {task.type.toUpperCase()}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className="font-mono text-xs"
+                          >
+                            D{task.difficulty}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className="font-mono text-xs"
+                          >
+                            {task.xp_value} XP
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className="font-mono text-xs"
+                          >
+                            {formatDeadline(task.deadline)}
+                          </Badge>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="neo-button px-2 py-1 text-xs font-mono"
+                        onClick={() =>
+                          updateMutation.mutate({
+                            id: task.id,
+                            status: TaskStatus.STAGED,
+                          })
+                        }
+                        disabled={updateMutation.isPending}
+                      >
+                        MOVE BACK
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

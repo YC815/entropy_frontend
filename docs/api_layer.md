@@ -169,30 +169,6 @@ The basic CRUD endpoints follow RESTful conventions with appropriate HTTP status
 
 **Sources:** [app/api/v1/endpoints/tasks.py L22-L111](https://github.com/YC815/entropy_backend/blob/7b608553/app/api/v1/endpoints/tasks.py#L22-L111)
 
-### Business Rule Enforcement
-
-The API layer enforces certain game mechanics constraints directly in the endpoint handlers:
-
-#### Payload Dock Capacity Constraint
-
-When updating a task's status to `IN_DOCK`, the endpoint enforces the "Payload Dock" capacity rule (maximum 3 tasks in dock):
-
-```
-if task_in.status == TaskStatus.IN_DOCK and task.status != TaskStatus.IN_DOCK:
-    dock_count = db.query(Task).filter(Task.status == TaskStatus.IN_DOCK).count()
-    if dock_count >= 3:
-        raise HTTPException(
-            status_code=400,
-            detail="Payload Dock is full (Max 3). Please complete existing tasks first."
-        )
-```
-
-**Sources:** [app/api/v1/endpoints/tasks.py L74-L81](https://github.com/YC815/entropy_backend/blob/7b608553/app/api/v1/endpoints/tasks.py#L74-L81)
-
-This constraint is enforced at the API layer rather than the service layer because it is a user-facing validation that should fail fast before any business logic executes.
-
----
-
 ## Special Endpoints
 
 ### Speech-to-Task Endpoint
@@ -271,14 +247,12 @@ The API layer uses FastAPI's `HTTPException` to return appropriate HTTP status c
 
 | Status Code | Usage | Example Locations |
 | --- | --- | --- |
-| 400 Bad Request | Business rule violations | Dock capacity exceeded, task already completed |
+| 400 Bad Request | Business rule violations | Task already completed |
 | 404 Not Found | Resource not found | Task ID doesn't exist |
 | 201 Created | Successful resource creation | POST /tasks/, POST /tasks/speech |
 | 204 No Content | Successful deletion | DELETE /tasks/{task_id} |
 
 **Sources:** [app/api/v1/endpoints/tasks.py L53](https://github.com/YC815/entropy_backend/blob/7b608553/app/api/v1/endpoints/tasks.py#L53-L53)
-
- [app/api/v1/endpoints/tasks.py L78-L81](https://github.com/YC815/entropy_backend/blob/7b608553/app/api/v1/endpoints/tasks.py#L78-L81)
 
  [app/api/v1/endpoints/tasks.py L107](https://github.com/YC815/entropy_backend/blob/7b608553/app/api/v1/endpoints/tasks.py#L107-L107)
 

@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Task, TaskStatus, TaskType } from '@/types'
-import { toast } from 'sonner'
 
 // ============================================================
 // QUERIES
@@ -30,7 +29,7 @@ interface UpdateTaskPayload {
   difficulty?: number
 }
 
-type TaskDropTarget = 'school' | 'skill' | 'misc' | 'dock' | 'staged'
+type TaskDropTarget = 'school' | 'skill' | 'misc'
 
 interface UpdateTaskStatusPayload {
   taskId: number
@@ -41,12 +40,7 @@ const targetUpdates: Record<TaskDropTarget, Partial<Task>> = {
   school: { status: TaskStatus.STAGED, type: TaskType.SCHOOL },
   skill: { status: TaskStatus.STAGED, type: TaskType.SKILL },
   misc: { status: TaskStatus.STAGED, type: TaskType.MISC },
-  dock: { status: TaskStatus.IN_DOCK },
-  staged: { status: TaskStatus.STAGED },
 }
-
-const getDockCount = (tasks?: Task[]) =>
-  tasks?.filter((task) => task.status === TaskStatus.IN_DOCK).length ?? 0
 
 export function useUpdateTaskStatus() {
   const queryClient = useQueryClient()
@@ -63,10 +57,6 @@ export function useUpdateTaskStatus() {
 
       const previousTasks = queryClient.getQueryData<Task[]>(['tasks'])
 
-      if (target === 'dock' && getDockCount(previousTasks) >= 3) {
-        throw new Error('DOCK_FULL')
-      }
-
       const updates = targetUpdates[target]
       queryClient.setQueryData<Task[]>(['tasks'], (old) => {
         if (!old) return []
@@ -82,14 +72,7 @@ export function useUpdateTaskStatus() {
       if (context?.previousTasks) {
         queryClient.setQueryData(['tasks'], context.previousTasks)
       }
-      if (err instanceof Error && err.message === 'DOCK_FULL') {
-        toast.error('DOCK FULL', {
-          description: 'Maximum 3 tasks allowed in Dock',
-          duration: 2000,
-        })
-      } else {
-        console.error('Task status update failed:', err)
-      }
+      console.error('Task status update failed:', err)
     },
 
     onSettled: () => {

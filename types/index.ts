@@ -11,7 +11,6 @@ export enum TaskType {
 export enum TaskStatus {
   DRAFT = "draft",
   STAGED = "staged",
-  IN_DOCK = "in_dock",
   COMPLETED = "completed",
   INCINERATED = "incinerated",
 }
