@@ -4,9 +4,14 @@ import { Task } from "@/types"; // 假設你在 types 裡已經定義了 Task
 
 export function useSpeechToText() {
   const queryClient = useQueryClient();
+  const MIN_AUDIO_BYTES = 500;
 
   return useMutation({
     mutationFn: async (audioBlob: Blob) => {
+      if (audioBlob.size < MIN_AUDIO_BYTES) {
+        throw new Error(`Audio too small (${audioBlob.size} bytes). Please record at least ~2 seconds.`);
+      }
+
       // 1. 建立 FormData
       const formData = new FormData();
       // 注意：檔名必須有副檔名，後端 ffmpeg 才能識別
