@@ -27,6 +27,7 @@ interface UpdateTaskPayload {
   status?: TaskStatus
   deadline?: string | null
   difficulty?: number
+  xp_value?: number
 }
 
 type TaskDropTarget = 'school' | 'skill' | 'misc'

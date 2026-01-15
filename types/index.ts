@@ -23,7 +23,7 @@ export interface Task {
   status: TaskStatus;
   difficulty: number; // 1-10
   xp_value: number;   // Base XP
-  deadline: string | null; // ISO String or null
+  deadline: string | null; // ISO datetime string (UTC) with timezone offset, or null
   created_at: string;
   updated_at: string;
 }
@@ -34,7 +34,7 @@ export interface TaskCreatePayload {
   type: TaskType;
   difficulty?: number;
   xp_value?: number;
-  deadline?: string | null;
+  deadline?: string | null; // ISO datetime string (UTC) with timezone offset, or null
 }
 
 // === Dashboard 相關定義 ===

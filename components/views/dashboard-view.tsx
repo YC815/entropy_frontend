@@ -5,10 +5,9 @@ import { useDashboard } from "@/hooks/use-dashboard";
 import { useTasks, useCompleteTask, useUpdateTask } from "@/hooks/use-tasks";
 import { Shield, Brain, Zap, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { TypeSelector } from "@/components/type-selector";
 import { TaskStatus } from "@/types";
-import { cn, getTaskUrgency, getUrgencyShadow, compareByUrgency } from "@/lib/utils";
+import { compareByUrgency } from "@/lib/utils";
+import { DashboardTaskCard } from "@/components/dashboard-task-card";
 
 export function DashboardView() {
   const { data, isLoading, isError, error } = useDashboard();
@@ -53,13 +52,6 @@ export function DashboardView() {
       return timeB - timeA;
     });
   }, [completedTasks]);
-
-  const formatDeadline = (deadline: string | null) => {
-    if (!deadline) return "No Deadline";
-    const parsed = new Date(deadline);
-    if (Number.isNaN(parsed.getTime())) return "No Deadline";
-    return parsed.toLocaleDateString();
-  };
 
   if (isLoading) {
     return (
@@ -215,16 +207,11 @@ export function DashboardView() {
             </div>
           ) : (
             <ul className="space-y-3">
-              {sortedTasks.map((task) => {
-                const urgency = getTaskUrgency(task.deadline);
-                return (
-                  <li
-                    key={task.id}
-                    className={cn(
-                      "neo-card p-3 flex items-start gap-3",
-                      getUrgencyShadow(urgency)
-                    )}
-                  >
+              {sortedTasks.map((task) => (
+                <DashboardTaskCard
+                  key={task.id}
+                  task={task}
+                  prefix={
                     <input
                       type="checkbox"
                       className="mt-1 h-4 w-4 accent-neo-black"
@@ -237,31 +224,9 @@ export function DashboardView() {
                       disabled={completeMutation.isPending}
                       aria-label={`Complete ${task.title}`}
                     />
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="font-display text-sm">
-                          {task.title}
-                        </div>
-                        <span className="text-[10px] font-mono uppercase text-stone-500">
-                          {urgency}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <TypeSelector taskId={task.id} currentType={task.type} />
-                        <Badge variant="outline" className="font-mono text-xs">
-                          D{task.difficulty}
-                        </Badge>
-                        <Badge variant="outline" className="font-mono text-xs">
-                          {task.xp_value} XP
-                        </Badge>
-                        <Badge variant="outline" className="font-mono text-xs">
-                          {formatDeadline(task.deadline)}
-                        </Badge>
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
+                  }
+                />
+              ))}
             </ul>
           )}
         </div>
@@ -297,57 +262,35 @@ export function DashboardView() {
               ) : (
                 <ul className="space-y-2">
                   {sortedCompletedTasks.map((task) => (
-                    <li
+                    <DashboardTaskCard
                       key={task.id}
-                      className="neo-card p-3 flex items-start gap-3 bg-stone-50"
-                    >
-                      <input
-                        type="checkbox"
-                        className="mt-1 h-4 w-4 accent-neo-black"
-                        checked={true}
-                        readOnly
-                        aria-label={`${task.title} completed`}
-                      />
-                      <div className="flex-1 space-y-2">
-                        <div className="font-display text-sm">
-                          {task.title}
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <TypeSelector taskId={task.id} currentType={task.type} />
-                          <Badge
-                            variant="outline"
-                            className="font-mono text-xs"
-                          >
-                            D{task.difficulty}
-                          </Badge>
-                          <Badge
-                            variant="outline"
-                            className="font-mono text-xs"
-                          >
-                            {task.xp_value} XP
-                          </Badge>
-                          <Badge
-                            variant="outline"
-                            className="font-mono text-xs"
-                          >
-                            {formatDeadline(task.deadline)}
-                          </Badge>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        className="neo-button px-2 py-1 text-xs font-mono"
-                        onClick={() =>
-                          updateMutation.mutate({
-                            id: task.id,
-                            status: TaskStatus.STAGED,
-                          })
-                        }
-                        disabled={updateMutation.isPending}
-                      >
-                        MOVE BACK
-                      </button>
-                    </li>
+                      task={task}
+                      className="bg-stone-50"
+                      prefix={
+                        <input
+                          type="checkbox"
+                          className="mt-1 h-4 w-4 accent-neo-black"
+                          checked={true}
+                          readOnly
+                          aria-label={`${task.title} completed`}
+                        />
+                      }
+                      suffix={
+                        <button
+                          type="button"
+                          className="neo-button px-2 py-1 text-xs font-mono"
+                          onClick={() =>
+                            updateMutation.mutate({
+                              id: task.id,
+                              status: TaskStatus.STAGED,
+                            })
+                          }
+                          disabled={updateMutation.isPending}
+                        >
+                          MOVE BACK
+                        </button>
+                      }
+                    />
                   ))}
                 </ul>
               )}

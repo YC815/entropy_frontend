@@ -1,12 +1,13 @@
 'use client'
 
 import { Task, TaskStatus } from '@/types'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useUpdateTask } from '@/hooks/use-tasks'
 import { Badge } from '@/components/ui/badge'
 import { TypeSelector } from '@/components/type-selector'
 import { Calendar, Flame, ArrowRight } from 'lucide-react'
 import { cn, getTaskUrgency, getUrgencyShadow } from '@/lib/utils'
+import { buildUtcIsoFromParts, deadlineToInputParts, formatDeadline } from '@/lib/datetime'
 
 interface TaskCardProps {
   task: Task
@@ -23,6 +24,11 @@ export function TaskCard({ task, onDelete, showStageButton, largeTypeSelector, c
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [title, setTitle] = useState(task.title)
   const [isEditingDeadline, setIsEditingDeadline] = useState(false)
+  const [deadlineDraft, setDeadlineDraft] = useState(() => deadlineToInputParts(task.deadline))
+
+  useEffect(() => {
+    setDeadlineDraft(deadlineToInputParts(task.deadline))
+  }, [task.deadline])
 
   // ============================================================
   // Title Editing
@@ -49,9 +55,22 @@ export function TaskCard({ task, onDelete, showStageButton, largeTypeSelector, c
   // ============================================================
   // Deadline Editing
   // ============================================================
-  const handleDeadlineChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newDeadline = e.target.value || null
-    updateMutation.mutate({ id: task.id, deadline: newDeadline })
+  const handleDeadlineSave = () => {
+    try {
+      if (!deadlineDraft.date) {
+        updateMutation.mutate({ id: task.id, deadline: null })
+      } else {
+        const iso = buildUtcIsoFromParts(deadlineDraft.date, deadlineDraft.time)
+        updateMutation.mutate({ id: task.id, deadline: iso })
+      }
+      setIsEditingDeadline(false)
+    } catch (error) {
+      alert('Invalid deadline. Please check date/time.')
+    }
+  }
+
+  const handleDeadlineCancel = () => {
+    setDeadlineDraft(deadlineToInputParts(task.deadline))
     setIsEditingDeadline(false)
   }
 
@@ -130,23 +149,41 @@ export function TaskCard({ task, onDelete, showStageButton, largeTypeSelector, c
 
         {/* Deadline */}
         {isEditingDeadline ? (
-          <input
-            type="date"
-            onChange={handleDeadlineChange}
-            onBlur={() => setIsEditingDeadline(false)}
-            defaultValue={task.deadline?.split('T')[0] || ''}
-            className="text-xs border border-stone-900 p-1 rounded"
-            autoFocus
-          />
+          <div className="flex items-center gap-2 text-xs flex-wrap">
+            <input
+              type="date"
+              value={deadlineDraft.date}
+              onChange={(e) => setDeadlineDraft((prev) => ({ ...prev, date: e.target.value }))}
+              className="text-xs border border-stone-900 p-1 rounded"
+              autoFocus
+            />
+            <input
+              type="time"
+              value={deadlineDraft.time}
+              onChange={(e) => setDeadlineDraft((prev) => ({ ...prev, time: e.target.value }))}
+              className="text-xs border border-stone-900 p-1 rounded"
+              step={60}
+            />
+            <button
+              onClick={handleDeadlineSave}
+              className="neo-button px-2 py-1 text-[11px] font-mono"
+            >
+              Save
+            </button>
+            <button
+              onClick={handleDeadlineCancel}
+              className="text-stone-500 underline-offset-2 underline"
+            >
+              Cancel
+            </button>
+          </div>
         ) : (
           <button
             onClick={() => setIsEditingDeadline(true)}
             className="flex items-center gap-1 text-xs hover:bg-stone-200 px-2 py-1 rounded"
           >
             <Calendar className="w-3 h-3" />
-            {task.deadline
-              ? new Date(task.deadline).toLocaleDateString()
-              : 'No Deadline'}
+            {formatDeadline(task.deadline)}
           </button>
         )}
       </div>
