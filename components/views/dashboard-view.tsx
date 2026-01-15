@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { TypeSelector } from "@/components/type-selector";
 import { TaskStatus } from "@/types";
-import { cn, getTaskUrgency, getUrgencyStyles } from "@/lib/utils";
+import { cn, getTaskUrgency, getUrgencyShadow, compareByUrgency } from "@/lib/utils";
 
 export function DashboardView() {
   const { data, isLoading, isError, error } = useDashboard();
@@ -43,12 +43,7 @@ export function DashboardView() {
 
   // Sort by urgency (critical first)
   const sortedTasks = useMemo(() => {
-    return [...stagedTasks].sort((a, b) => {
-      const urgencyOrder = { critical: 0, warning: 1, normal: 2 };
-      const urgA = getTaskUrgency(a.deadline);
-      const urgB = getTaskUrgency(b.deadline);
-      return urgencyOrder[urgA] - urgencyOrder[urgB];
-    });
+    return [...stagedTasks].sort((a, b) => compareByUrgency(a.deadline, b.deadline));
   }, [stagedTasks]);
 
   const sortedCompletedTasks = useMemo(() => {
@@ -227,7 +222,7 @@ export function DashboardView() {
                     key={task.id}
                     className={cn(
                       "neo-card p-3 flex items-start gap-3",
-                      getUrgencyStyles(urgency)
+                      getUrgencyShadow(urgency)
                     )}
                   >
                     <input
