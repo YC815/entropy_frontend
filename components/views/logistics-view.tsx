@@ -1,34 +1,21 @@
 'use client'
 
-import {
-  SortableContext,
-  horizontalListSortingStrategy,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
-import { useTasks, useDeleteTask } from '@/hooks/use-tasks'
+import { useTasks, useDeleteTask, useUpdateTask } from '@/hooks/use-tasks'
 import { TaskCard } from '@/components/task-card'
-import { DroppableZone } from '@/components/droppable-zone'
 import { AudioRecorder } from '@/components/audio-recorder'
-import { TaskStatus, TaskType } from '@/types'
+import { TaskStatus } from '@/types'
 import { toast } from 'sonner'
+import { ArrowRight } from 'lucide-react'
 
 export function LogisticsView() {
   const { data: tasks = [], isLoading } = useTasks()
   const deleteMutation = useDeleteTask()
+  const updateMutation = useUpdateTask()
 
   // ============================================================
-  // Filter Tasks by Status
+  // Filter Tasks - Only DRAFT
   // ============================================================
   const draftTasks = tasks.filter((t) => t.status === TaskStatus.DRAFT)
-  const schoolTasks = tasks.filter(
-    (t) => t.status === TaskStatus.STAGED && t.type === TaskType.SCHOOL
-  )
-  const skillTasks = tasks.filter(
-    (t) => t.status === TaskStatus.STAGED && t.type === TaskType.SKILL
-  )
-  const miscTasks = tasks.filter(
-    (t) => t.status === TaskStatus.STAGED && t.type === TaskType.MISC
-  )
 
   // ============================================================
   // Delete Handler
@@ -42,99 +29,77 @@ export function LogisticsView() {
     }
   }
 
+  // ============================================================
+  // Stage All Handler
+  // ============================================================
+  const handleStageAll = () => {
+    draftTasks.forEach((task) => {
+      updateMutation.mutate({ id: task.id, status: TaskStatus.STAGED })
+    })
+    toast.success('All Drafts Staged', {
+      description: `${draftTasks.length} task(s) ready for battle.`,
+    })
+  }
+
   if (isLoading) {
     return <div className="font-mono">LOADING LOGISTICS...</div>
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* ============================================ */}
-      {/* TOP SECTION: INBOX (含錄音輸入) */}
+      {/* Audio Recorder Section */}
       {/* ============================================ */}
-      <section className="neo-card p-4">
-        <h3 className="font-display text-lg mb-4">INBOX (AI DRAFTS)</h3>
-
-        <div className="neo-card p-6 mb-4 bg-linear-to-br from-blue-50 to-white">
-          <AudioRecorder />
-        </div>
-
-        {draftTasks.length === 0 ? (
-          <p className="text-xs font-mono text-stone-400 text-center py-8">
-            NO DRAFTS YET - START RECORDING!
-          </p>
-        ) : (
-          <SortableContext
-            items={draftTasks.map((t) => t.id)}
-            strategy={horizontalListSortingStrategy}
-          >
-            <div className="flex gap-3 overflow-x-auto pb-2">
-              {draftTasks.map((task) => (
-                <div key={task.id} className="min-w-64">
-                  <TaskCard task={task} onDelete={handleDelete} />
-                </div>
-              ))}
-            </div>
-          </SortableContext>
-        )}
+      <section className="neo-card p-6 bg-gradient-to-br from-blue-50 to-white">
+        <h3 className="font-display text-lg mb-4">VOICE INPUT</h3>
+        <AudioRecorder />
       </section>
 
       {/* ============================================ */}
-      {/* BOTTOM SECTION: STAGING BUCKETS (只保留 3 個) */}
+      {/* Draft Tasks Section */}
       {/* ============================================ */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* SCHOOL BUCKET */}
-        <DroppableZone
-          id="school"
-          label="SCHOOL"
-          isEmpty={schoolTasks.length === 0}
-          type="school"
-          className="bg-neutral-100! shadow-none!"
-        >
-          <SortableContext
-            items={schoolTasks.map((t) => t.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            {schoolTasks.map((task) => (
-              <TaskCard key={task.id} task={task} />
-            ))}
-          </SortableContext>
-        </DroppableZone>
+      <section className="neo-card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-display text-lg">
+            INBOX
+            <span className="ml-2 text-sm font-mono text-stone-500">
+              ({draftTasks.length} DRAFTS)
+            </span>
+          </h3>
+          {draftTasks.length > 1 && (
+            <button
+              onClick={handleStageAll}
+              disabled={updateMutation.isPending}
+              className="neo-button px-4 py-2 text-xs font-mono flex items-center gap-2"
+            >
+              STAGE ALL
+              <ArrowRight className="w-3 h-3" />
+            </button>
+          )}
+        </div>
 
-        {/* SKILL BUCKET */}
-        <DroppableZone
-          id="skill"
-          label="SKILL"
-          isEmpty={skillTasks.length === 0}
-          type="skill"
-          className="bg-neutral-100! shadow-none!"
-        >
-          <SortableContext
-            items={skillTasks.map((t) => t.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            {skillTasks.map((task) => (
-              <TaskCard key={task.id} task={task} />
+        {draftTasks.length === 0 ? (
+          <div className="py-12 text-center">
+            <p className="text-stone-400 font-mono text-sm">
+              NO DRAFTS YET - START RECORDING!
+            </p>
+            <p className="text-stone-300 font-mono text-xs mt-2">
+              Your AI-parsed tasks will appear here
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {draftTasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onDelete={handleDelete}
+                showStageButton
+                largeTypeSelector
+              />
             ))}
-          </SortableContext>
-        </DroppableZone>
-
-        {/* MISC BUCKET */}
-        <DroppableZone
-          id="misc"
-          label="MISC"
-          isEmpty={miscTasks.length === 0}
-          type="misc"
-          className="bg-neutral-100! shadow-none!"
-        >
-          <SortableContext
-            items={miscTasks.map((t) => t.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            {miscTasks.map((task) => (
-              <TaskCard key={task.id} task={task} />
-            ))}
-          </SortableContext>
-        </DroppableZone>
+          </div>
+        )}
       </section>
     </div>
   )

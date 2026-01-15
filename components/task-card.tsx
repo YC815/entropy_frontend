@@ -1,43 +1,28 @@
 'use client'
 
-import { Task, TaskType } from '@/types'
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
+import { Task, TaskStatus } from '@/types'
 import { useState } from 'react'
 import { useUpdateTask } from '@/hooks/use-tasks'
 import { Badge } from '@/components/ui/badge'
-import { Calendar, Flame } from 'lucide-react'
+import { TypeSelector } from '@/components/type-selector'
+import { Calendar, Flame, ArrowRight } from 'lucide-react'
 import { cn, getTaskUrgency, getUrgencyShadow } from '@/lib/utils'
 
 interface TaskCardProps {
   task: Task
   onDelete?: (id: number) => void
+  showStageButton?: boolean
+  largeTypeSelector?: boolean
   className?: string
 }
 
-export function TaskCard({ task, onDelete, className }: TaskCardProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: task.id })
-
+export function TaskCard({ task, onDelete, showStageButton, largeTypeSelector, className }: TaskCardProps) {
   const updateMutation = useUpdateTask()
 
   // Local state for inline editing
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [title, setTitle] = useState(task.title)
   const [isEditingDeadline, setIsEditingDeadline] = useState(false)
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    // Hide original card when dragging (Ghost takes over)
-    opacity: isDragging ? 0 : 1,
-  }
 
   // ============================================================
   // Title Editing
@@ -71,40 +56,22 @@ export function TaskCard({ task, onDelete, className }: TaskCardProps) {
   }
 
   // ============================================================
-  // Type Badge Styling (更新為新粗野主義配色)
-  // ============================================================
-  const getTypeColor = (type: TaskType) => {
-    switch (type) {
-      case TaskType.SCHOOL:
-        return 'bg-[#FFDE59] text-black border-2 border-black'
-      case TaskType.SKILL:
-        return 'bg-[#54A0FF] text-white border-2 border-black'
-      case TaskType.MISC:
-        return 'bg-[#FF6B6B] text-white border-2 border-black'
-    }
-  }
-
-  // ============================================================
-  // Urgency Styling (使用統一工具函式)
+  // Urgency Styling
   // ============================================================
   const urgency = getTaskUrgency(task.deadline)
   const shadowClass = getUrgencyShadow(urgency)
 
   return (
     <div
-      ref={setNodeRef}
-      style={style}
       className={cn(
         `
-          bg-white p-3 cursor-grab active:cursor-grabbing
+          bg-white p-3
           border-2 border-black
           ${shadowClass}
           hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px] transition-all
         `,
         className
       )}
-      {...attributes}
-      {...listeners}
     >
       {/* Header Row */}
       <div className="flex items-start justify-between mb-2">
@@ -144,10 +111,12 @@ export function TaskCard({ task, onDelete, className }: TaskCardProps) {
 
       {/* Metadata Row */}
       <div className="flex items-center gap-2 flex-wrap">
-        {/* Type Badge */}
-        <Badge className={getTypeColor(task.type)}>
-          {task.type.toUpperCase()}
-        </Badge>
+        {/* Type Selector */}
+        <TypeSelector
+          taskId={task.id}
+          currentType={task.type}
+          size={largeTypeSelector ? 'lg' : 'sm'}
+        />
 
         {/* Difficulty */}
         <Badge variant="outline" className="font-mono text-xs">
@@ -181,6 +150,21 @@ export function TaskCard({ task, onDelete, className }: TaskCardProps) {
           </button>
         )}
       </div>
+
+      {/* Stage Button */}
+      {showStageButton && task.status === TaskStatus.DRAFT && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            updateMutation.mutate({ id: task.id, status: TaskStatus.STAGED })
+          }}
+          disabled={updateMutation.isPending}
+          className="mt-3 w-full neo-button px-3 py-1.5 text-xs font-mono flex items-center justify-center gap-2"
+        >
+          STAGE
+          <ArrowRight className="w-3 h-3" />
+        </button>
+      )}
     </div>
   )
 }

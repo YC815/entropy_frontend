@@ -6,7 +6,8 @@ import { useTasks, useCompleteTask, useUpdateTask } from "@/hooks/use-tasks";
 import { Shield, Brain, Zap, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { TaskStatus, TaskType } from "@/types";
+import { TypeSelector } from "@/components/type-selector";
+import { TaskStatus } from "@/types";
 import { cn, getTaskUrgency, getUrgencyStyles } from "@/lib/utils";
 
 export function DashboardView() {
@@ -57,18 +58,6 @@ export function DashboardView() {
       return timeB - timeA;
     });
   }, [completedTasks]);
-
-  const getTypeColor = (type: TaskType) => {
-    switch (type) {
-      case TaskType.SCHOOL:
-        return "bg-[#FFDE59] text-black border-2 border-black";
-      case TaskType.SKILL:
-        return "bg-[#54A0FF] text-white border-2 border-black";
-      case TaskType.MISC:
-        return "bg-[#FF6B6B] text-white border-2 border-black";
-    }
-    return "bg-stone-200 text-black border-2 border-black";
-  };
 
   const formatDeadline = (deadline: string | null) => {
     if (!deadline) return "No Deadline";
@@ -263,9 +252,7 @@ export function DashboardView() {
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Badge className={getTypeColor(task.type)}>
-                          {task.type.toUpperCase()}
-                        </Badge>
+                        <TypeSelector taskId={task.id} currentType={task.type} />
                         <Badge variant="outline" className="font-mono text-xs">
                           D{task.difficulty}
                         </Badge>
@@ -331,9 +318,7 @@ export function DashboardView() {
                           {task.title}
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <Badge className={getTypeColor(task.type)}>
-                            {task.type.toUpperCase()}
-                          </Badge>
+                          <TypeSelector taskId={task.id} currentType={task.type} />
                           <Badge
                             variant="outline"
                             className="font-mono text-xs"
